@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#312e81">
+<title>NAPLEX CNS 手機記憶遊戲</title>
+<style>
+:root{
+  --bg:#f7f7fb;--surface:#ffffff;--ink:#172033;--muted:#6b7280;
+  --primary:#4f46e5;--primary2:#7c3aed;--good:#16a34a;--bad:#dc2626;
+  --line:#e5e7eb;--soft:#eef2ff;--shadow:0 12px 32px rgba(31,41,55,.10);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
+button,select{font:inherit}
+button{cursor:pointer}
+.app{max-width:520px;margin:0 auto;min-height:100vh;padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+.topbar{position:sticky;top:0;z-index:10;padding:calc(14px + env(safe-area-inset-top)) 16px 14px;background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;box-shadow:0 4px 18px rgba(79,70,229,.22)}
+.toprow{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{font-weight:900;letter-spacing:.3px;font-size:20px}
+.streak{font-size:13px;font-weight:800;background:rgba(255,255,255,.18);padding:7px 10px;border-radius:999px}
+.screen{display:none;padding:16px}.screen.active{display:block}
+.hero{background:linear-gradient(145deg,#fff,#f3f4ff);border:1px solid #e8e7ff;border-radius:24px;padding:22px;box-shadow:var(--shadow);margin-top:6px}
+.hero h1{font-size:28px;line-height:1.1;margin:0 0 8px}.hero p{margin:0;color:var(--muted);line-height:1.55}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+.mode{border:1px solid var(--line);background:var(--surface);border-radius:20px;padding:18px 14px;text-align:left;min-height:135px;box-shadow:0 6px 18px rgba(31,41,55,.06)}
+.mode:active{transform:scale(.98)}.mode .emoji{font-size:30px}.mode b{display:block;margin-top:10px;font-size:16px}.mode span{display:block;margin-top:5px;color:var(--muted);font-size:12px;line-height:1.35}
+.full{grid-column:1/-1;min-height:auto;display:flex;align-items:center;gap:12px}
+.section-title{margin:20px 2px 10px;font-size:15px;color:var(--muted);font-weight:800}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.mini{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:13px;text-align:center}.mini b{display:block;font-size:21px}.mini span{font-size:11px;color:var(--muted)}
+.game-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.back{border:0;background:#fff;border-radius:12px;padding:10px 12px;font-weight:800;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+.progress-wrap{flex:1}.progress-meta{display:flex;justify-content:space-between;color:var(--muted);font-size:12px;font-weight:700;margin-bottom:6px}.progress{height:9px;border-radius:999px;background:#e5e7eb;overflow:hidden}.bar{height:100%;width:0;background:linear-gradient(90deg,var(--primary),var(--primary2));transition:width .25s ease}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:22px;box-shadow:var(--shadow)}
+.prompt-label{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:900}.question{font-size:30px;line-height:1.15;font-weight:900;margin:12px 0 8px;word-break:break-word}.subhint{color:var(--muted);font-size:14px}
+.speak-btn{margin-top:15px;border:0;background:var(--soft);color:var(--primary);border-radius:14px;padding:10px 14px;font-weight:900}
+.choices{display:grid;gap:11px;margin-top:16px}.choice{width:100%;text-align:left;border:2px solid var(--line);background:#fff;border-radius:17px;padding:15px 16px;font-weight:800;line-height:1.35;min-height:58px}.choice:active{transform:scale(.99)}.choice.correct{border-color:var(--good);background:#ecfdf3;color:#14532d}.choice.wrong{border-color:var(--bad);background:#fef2f2;color:#7f1d1d}.choice:disabled{cursor:default;opacity:1}
+.feedback{display:none;margin-top:14px;border-radius:18px;padding:15px;font-weight:800;line-height:1.4}.feedback.show{display:block}.feedback.good{background:#ecfdf3;color:#166534}.feedback.bad{background:#fef2f2;color:#991b1b}
+.next{display:none;width:100%;margin-top:14px;border:0;border-radius:17px;padding:16px;background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;font-weight:900;font-size:17px}.next.show{display:block}
+.setup-card{background:#fff;border:1px solid var(--line);border-radius:22px;padding:18px;box-shadow:var(--shadow)}
+.setup-card label{display:block;font-size:13px;font-weight:900;color:var(--muted);margin:12px 0 7px}.setup-card select{width:100%;border:1px solid var(--line);border-radius:14px;padding:13px;background:#fff}.primary{width:100%;margin-top:16px;border:0;border-radius:16px;padding:16px;background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;font-weight:900;font-size:17px}
+.result{text-align:center}.trophy{font-size:64px}.result h2{font-size:28px;margin:10px 0}.scorebig{font-size:46px;font-weight:950;color:var(--primary)}
+.review-list{display:grid;gap:10px;margin-top:14px}.review{background:#fff;border:1px solid var(--line);border-radius:16px;padding:13px}.review b{font-size:16px}.review small{display:block;color:var(--muted);margin-top:5px;line-height:1.45}
+.empty{color:var(--muted);text-align:center;padding:28px 8px}
+@media(min-width:760px){.app{max-width:760px}.grid{grid-template-columns:repeat(3,1fr)}.full{grid-column:auto}.screen{padding:24px}.question{font-size:36px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="toprow"><div class="brand">NAPLEX CNS</div><div class="streak" id="streakBadge">🔥 0 day streak</div></div>
+  </header>
+
+  <main id="home" class="screen active">
+    <section class="hero"><h1>把藥名變成遊戲</h1><p>手機版採用單題四選一，卡片大、按鈕好點，並自動保存錯題與熟練度。</p></section>
+    <div class="section-title">選擇遊戲模式</div>
+    <section class="grid">
+      <button class="mode" onclick="openSetup('brand-generic')"><div class="emoji">💊</div><b>Brand → Generic</b><span>看到品牌名，找出學名</span></button>
+      <button class="mode" onclick="openSetup('generic-brand')"><div class="emoji">🔄</div><b>Generic → Brand</b><span>看到學名，找出品牌名</span></button>
+      <button class="mode" onclick="openSetup('brand-disease')"><div class="emoji">🩺</div><b>Brand → Disease</b><span>看到品牌名，判斷適應症</span></button>
+      <button class="mode" onclick="openSetup('mixed')"><div class="emoji">🎲</div><b>Mixed Challenge</b><span>三種題型隨機混合</span></button>
+      <button class="mode full" onclick="startWrongOnly()"><div class="emoji">❌</div><div><b>錯題重練</b><span id="wrongCountText">目前 0 個錯題</span></div></button>
+      <button class="mode full" onclick="showReview()"><div class="emoji">📚</div><div><b>完整藥物表</b><span>品牌、學名、適應症與發音</span></div></button>
+    </section>
+    <div class="section-title">今日進度</div>
+    <section class="stats-row"><div class="mini"><b id="todayAnswered">0</b><span>Answered</span></div><div class="mini"><b id="todayCorrect">0</b><span>Correct</span></div><div class="mini"><b id="masteredTotal">0</b><span>Mastered</span></div></section>
+  </main>
+
+  <main id="setup" class="screen">
+    <div class="game-head"><button class="back" onclick="goHome()">← 返回</button><div style="font-weight:900">設定挑戰</div></div>
+    <section class="setup-card">
+      <div class="prompt-label">Mode</div><div class="question" id="setupMode" style="font-size:24px"></div>
+      <label for="questionCount">題數</label>
+      <select id="questionCount"><option value="10">10 題</option><option value="20" selected>20 題</option><option value="30">30 題</option><option value="40">全部 40 題</option></select>
+      <label for="speechRate">英文發音速度</label>
+      <select id="speechRate"><option value="0.7">慢速</option><option value="0.85" selected>正常偏慢</option><option value="1">正常</option></select>
+      <button class="primary" onclick="startGame()">開始遊戲</button>
+    </section>
+  </main>
+
+  <main id="game" class="screen">
+    <div class="game-head"><button class="back" onclick="confirmExit()">✕</button><div class="progress-wrap"><div class="progress-meta"><span id="qCounter">1 / 20</span><span id="liveScore">0 correct</span></div><div class="progress"><div id="bar" class="bar"></div></div></div></div>
+    <section class="card">
+      <div class="prompt-label" id="promptLabel">Choose the generic name</div>
+      <div class="question" id="questionText"></div>
+      <div class="subhint" id="subhint">點一下喇叭聽發音</div>
+      <button class="speak-btn" onclick="speakCurrent()">🔊 Play pronunciation</button>
+      <div class="choices" id="choices"></div>
+      <div id="feedback" class="feedback"></div>
+      <button id="nextBtn" class="next" onclick="nextQuestion()">下一題</button>
+    </section>
+  </main>
+
+  <main id="result" class="screen">
+    <section class="card result"><div class="trophy">🏆</div><h2>挑戰完成</h2><div class="scorebig" id="resultScore">0%</div><p id="resultText" class="subhint"></p><button class="primary" onclick="repeatGame()">再玩一次</button><button class="back" style="width:100%;margin-top:10px" onclick="goHome()">回首頁</button></section>
+  </main>
+
+  <main id="reviewScreen" class="screen">
+    <div class="game-head"><button class="back" onclick="goHome()">← 返回</button><div style="font-weight:900">完整藥物表</div></div>
+    <div class="review-list" id="reviewList"></div>
+  </main>
+</div>
+
+<script>
+const DATA = [
+["Adderall","Amphetamine/Dextroamphetamine","ADHD"],["Concerta","Methylphenidate ER","ADHD"],["Kapvay","Clonidine ER","ADHD"],["Strattera","Atomoxetine","ADHD"],["Vyvanse","Lisdexamfetamine","ADHD"],
+["Aricept","Donepezil","Alzheimer's disease"],["Namenda","Memantine","Alzheimer's disease"],["Namzaric","Donepezil/Memantine","Alzheimer's disease"],
+["Ativan","Lorazepam","Anxiety"],["Valium","Diazepam","Anxiety"],["Xanax","Alprazolam","Anxiety"],["Klonopin","Clonazepam","Anxiety / seizure disorder"],["Lithobid","Lithium","Bipolar disorder"],
+["Celexa","Citalopram","Depression"],["Cymbalta","Duloxetine","Depression"],["Effexor XR","Venlafaxine","Depression"],["Lexapro","Escitalopram","Depression"],["Pamelor","Nortriptyline","Depression"],["Paxil","Paroxetine","Depression"],["Pristiq","Desvenlafaxine","Depression"],["Prozac","Fluoxetine","Depression"],["Wellbutrin","Bupropion","Depression"],["Zoloft","Sertraline","Depression"],
+["Ambien","Zolpidem","Insomnia"],["Lunesta","Eszopiclone","Insomnia"],["Restoril","Temazepam","Insomnia"],["Imitrex","Sumatriptan","Migraine"],
+["Comtan","Entacapone","Parkinson disease"],["Mirapex ER","Pramipexole","Parkinson disease"],["Requip XL","Ropinirole","Parkinson disease"],["Sinemet CR","Carbidopa/Levodopa","Parkinson disease"],
+["Geodon","Ziprasidone","Schizophrenia"],["Risperdal","Risperidone","Schizophrenia"],["Seroquel","Quetiapine","Schizophrenia"],["Precedex","Dexmedetomidine","Sedation"],
+["Keppra","Levetiracetam","Seizures"],["Lamictal","Lamotrigine","Seizures"],["Neurontin","Gabapentin","Seizures"],["Trileptal","Oxcarbazepine","Seizures"]
+].map((x,i)=>({id:i,brand:x[0],generic:x[1],disease:x[2]}));
+
+let mode='brand-generic', questions=[], idx=0, correct=0, answered=false, wrongThisRound=[];
+const labels={
+ 'brand-generic':['Brand → Generic','Choose the generic name','brand','generic'],
+ 'generic-brand':['Generic → Brand','Choose the brand name','generic','brand'],
+ 'brand-disease':['Brand → Disease','Choose the indication','brand','disease']
+};
+const $=id=>document.getElementById(id);
+const shuffle=a=>{const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b};
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$(id).classList.add('active');window.scrollTo(0,0)}
+function openSetup(m){mode=m;$('setupMode').textContent=m==='mixed'?'Mixed Challenge':labels[m][0];show('setup')}
+function goHome(){show('home');refreshHome()}
+function confirmExit(){if(confirm('要離開這一輪嗎？目前進度不會保留。'))goHome()}
+function buildQuestion(item,m){const use=m==='mixed'?shuffle(Object.keys(labels))[0]:m;const [name,prompt,qKey,aKey]=labels[use];const answer=item[aKey];const pool=[...new Set(DATA.map(x=>x[aKey]).filter(x=>x!==answer))];const choices=shuffle([answer,...shuffle(pool).slice(0,3)]);return{item,mode:use,name,prompt,qKey,aKey,question:item[qKey],answer,choices}}
+function startGame(customItems=null){let count=Number($('questionCount').value);let base=customItems||shuffle(DATA);if(count>base.length)count=base.length;questions=base.slice(0,count).map(x=>buildQuestion(x,mode));idx=0;correct=0;answered=false;wrongThisRound=[];show('game');renderQuestion()}
+function startWrongOnly(){const ids=JSON.parse(localStorage.getItem('naplex_wrong_ids')||'[]');if(!ids.length){alert('目前沒有錯題，先完成一輪挑戰吧！');return}mode='mixed';const items=ids.map(id=>DATA.find(x=>x.id===id)).filter(Boolean);$('questionCount').value=String(Math.min(20,items.length));startGame(shuffle(items))}
+function renderQuestion(){answered=false;const q=questions[idx];$('qCounter').textContent=`${idx+1} / ${questions.length}`;$('liveScore').textContent=`${correct} correct`;$('bar').style.width=`${(idx/questions.length)*100}%`;$('promptLabel').textContent=q.prompt;$('questionText').textContent=q.question;$('subhint').textContent=q.name;$('feedback').className='feedback';$('feedback').textContent='';$('nextBtn').className='next';const box=$('choices');box.innerHTML='';q.choices.forEach(c=>{const b=document.createElement('button');b.className='choice';b.textContent=c;b.onclick=()=>choose(b,c);box.appendChild(b)});setTimeout(()=>speak(q.question),150)}
+function choose(button,choice){if(answered)return;answered=true;const q=questions[idx];document.querySelectorAll('.choice').forEach(b=>{b.disabled=true;if(b.textContent===q.answer)b.classList.add('correct')});const ok=choice===q.answer;if(ok){correct++;$('feedback').className='feedback show good';$('feedback').textContent=`✓ Correct! ${q.item.brand} — ${q.item.generic} — ${q.item.disease}`;markMastered(q.item.id)}else{button.classList.add('wrong');$('feedback').className='feedback show bad';$('feedback').textContent=`✗ Correct answer: ${q.answer}`;wrongThisRound.push(q.item.id);saveWrong(q.item.id)};incrementDaily(ok);speak(`${q.item.brand}. ${q.item.generic}. ${q.item.disease}.`);$('liveScore').textContent=`${correct} correct`;$('nextBtn').textContent=idx===questions.length-1?'查看成績':'下一題';$('nextBtn').className='next show'}
+function nextQuestion(){if(idx<questions.length-1){idx++;renderQuestion()}else finishGame()}
+function finishGame(){const pct=Math.round(correct/questions.length*100);$('bar').style.width='100%';$('resultScore').textContent=`${pct}%`;$('resultText').textContent=`答對 ${correct} / ${questions.length} 題；本輪錯題 ${wrongThisRound.length} 題。`;updateStreak();show('result')}
+function repeatGame(){startGame()}
+function speak(text){if(!('speechSynthesis'in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='en-US';u.rate=Number($('speechRate').value||.85);speechSynthesis.speak(u)}
+function speakCurrent(){speak(questions[idx].question)}
+function markMastered(id){const key='naplex_mastery';const obj=JSON.parse(localStorage.getItem(key)||'{}');obj[id]=(obj[id]||0)+1;localStorage.setItem(key,JSON.stringify(obj));if(obj[id]>=3)removeWrong(id)}
+function saveWrong(id){const ids=new Set(JSON.parse(localStorage.getItem('naplex_wrong_ids')||'[]'));ids.add(id);localStorage.setItem('naplex_wrong_ids',JSON.stringify([...ids]))}
+function removeWrong(id){let ids=JSON.parse(localStorage.getItem('naplex_wrong_ids')||'[]').filter(x=>x!==id);localStorage.setItem('naplex_wrong_ids',JSON.stringify(ids))}
+function incrementDaily(ok){const today=new Date().toISOString().slice(0,10);let d=JSON.parse(localStorage.getItem('naplex_daily')||'{}');if(d.date!==today)d={date:today,answered:0,correct:0};d.answered++;if(ok)d.correct++;localStorage.setItem('naplex_daily',JSON.stringify(d))}
+function updateStreak(){const today=new Date();const t=today.toISOString().slice(0,10);let s=JSON.parse(localStorage.getItem('naplex_streak')||'{"count":0,"last":""}');if(s.last!==t){const y=new Date(today);y.setDate(y.getDate()-1);const ys=y.toISOString().slice(0,10);s.count=s.last===ys?s.count+1:1;s.last=t;localStorage.setItem('naplex_streak',JSON.stringify(s))}}
+function refreshHome(){const wrong=JSON.parse(localStorage.getItem('naplex_wrong_ids')||'[]');$('wrongCountText').textContent=`目前 ${wrong.length} 個錯題`;const d=JSON.parse(localStorage.getItem('naplex_daily')||'{}');const today=new Date().toISOString().slice(0,10);$('todayAnswered').textContent=d.date===today?(d.answered||0):0;$('todayCorrect').textContent=d.date===today?(d.correct||0):0;const m=JSON.parse(localStorage.getItem('naplex_mastery')||'{}');$('masteredTotal').textContent=Object.values(m).filter(v=>v>=3).length;const s=JSON.parse(localStorage.getItem('naplex_streak')||'{"count":0}');$('streakBadge').textContent=`🔥 ${s.count||0} day streak`}
+function showReview(){const list=$('reviewList');list.innerHTML='';DATA.forEach(x=>{const d=document.createElement('div');d.className='review';d.innerHTML=`<b>${x.brand}</b><small>Generic: ${x.generic}<br>Indication: ${x.disease}</small>`;d.onclick=()=>speak(`${x.brand}. ${x.generic}. ${x.disease}.`);list.appendChild(d)});show('reviewScreen')}
+refreshHome();
+</script>
+</body>
+</html>
