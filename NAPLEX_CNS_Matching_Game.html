@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NAPLEX CNS Matching Game</title>
+<style>
+:root {
+  --bg:#f6f7fb; --card:#fff; --ink:#1f2937; --muted:#6b7280;
+  --line:#d1d5db; --good:#16a34a; --bad:#dc2626; --blue:#2563eb;
+}
+* { box-sizing:border-box; }
+body { margin:0; font-family:Arial, Helvetica, sans-serif; background:var(--bg); color:var(--ink); }
+header { padding:18px; background:#111827; color:white; }
+h1 { margin:0; font-size:22px; }
+header p { margin:6px 0 0; color:#d1d5db; font-size:14px; }
+.wrap { max-width:1100px; margin:0 auto; padding:16px; }
+.panel { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:14px; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+.controls { display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap:10px; }
+button, select { border:1px solid var(--line); background:white; color:var(--ink); border-radius:10px; padding:10px 12px; font-size:15px; }
+button { cursor:pointer; font-weight:700; }
+button.primary { background:var(--blue); color:white; border-color:var(--blue); }
+button:disabled { opacity:.5; cursor:not-allowed; }
+.stats { display:flex; gap:14px; flex-wrap:wrap; font-size:15px; }
+.stat { background:#f3f4f6; padding:8px 10px; border-radius:10px; }
+.game { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.col { display:flex; flex-direction:column; gap:8px; }
+.item { background:white; border:2px solid var(--line); border-radius:12px; padding:12px; min-height:48px; display:flex; align-items:center; justify-content:space-between; gap:8px; cursor:pointer; user-select:none; }
+.item .text { font-size:17px; font-weight:700; }
+.item.small .text { font-size:15px; }
+.item.selected { border-color:var(--blue); background:#eff6ff; }
+.item.correct { border-color:var(--good); background:#ecfdf5; color:#14532d; cursor:default; }
+.item.wrong { border-color:var(--bad); background:#fef2f2; }
+.speak { border:0; background:#f3f4f6; border-radius:8px; padding:6px 8px; font-size:14px; min-width:38px; }
+.done { text-align:center; font-size:20px; font-weight:800; padding:24px; color:var(--good); display:none; }
+.review-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.review-card { border:1px solid var(--line); border-radius:10px; padding:10px; background:white; }
+.mode-note { color:var(--muted); font-size:14px; margin-top:8px; }
+@media (max-width:800px) {
+  .controls { grid-template-columns:1fr 1fr; }
+  .game { grid-template-columns:1fr; }
+  .review-list { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap" style="padding:0">
+    <h1>NAPLEX CNS Matching Game</h1>
+    <p>Brand → Disease, Brand → Generic, and Generic → Brand, with pronunciation.</p>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="panel">
+    <div class="controls">
+      <select id="mode">
+        <option value="brand-disease">Brand → Disease</option>
+        <option value="brand-generic">Brand → Generic</option>
+        <option value="generic-brand">Generic → Brand</option>
+      </select>
+      <select id="batch">
+        <option value="6">6 pairs</option>
+        <option value="8" selected>8 pairs</option>
+        <option value="10">10 pairs</option>
+        <option value="12">12 pairs</option>
+      </select>
+      <button class="primary" onclick="newRound()">New Round</button>
+      <button onclick="speakAll()">🔊 Read Round</button>
+    </div>
+    <div class="mode-note">
+      How to play: click one card on the left, then click the matching card on the right. Correct pairs turn green and are saved as mastered.
+    </div>
+  </div>
+
+  <div class="panel stats">
+    <div class="stat">Score: <b id="score">0</b></div>
+    <div class="stat">Wrong: <b id="wrong">0</b></div>
+    <div class="stat">Remaining: <b id="remaining">0</b></div>
+    <div class="stat">Mastered today: <b id="mastered">0</b></div>
+  </div>
+
+  <div class="panel game">
+    <div>
+      <h3 id="leftTitle">Brand</h3>
+      <div class="col" id="left"></div>
+    </div>
+    <div>
+      <h3 id="rightTitle">Disease</h3>
+      <div class="col" id="right"></div>
+    </div>
+  </div>
+
+  <div class="panel done" id="done">
+    ✅ Round complete! Click “New Round” to continue.
+  </div>
+
+  <div class="panel">
+    <h3>Review List</h3>
+    <div class="review-list" id="review"></div>
+  </div>
+</div>
+
+<script>
+const DATA = [{"section": "CNS (Psychiatry / Neurology)", "brand": "Adderall", "generic": "Amphetamine/Dextroamphetamine", "disease": "ADHD"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Concerta", "generic": "Methylphenidate ER", "disease": "ADHD"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Kapvay", "generic": "Clonidine ER", "disease": "ADHD"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Strattera", "generic": "Atomoxetine", "disease": "ADHD"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Vyvanse", "generic": "Lisdexamfetamine", "disease": "ADHD"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Aricept", "generic": "Donepezil", "disease": "Alzheimer's disease"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Namenda", "generic": "Memantine", "disease": "Alzheimer's disease"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Namzaric", "generic": "Donepezil/Memantine", "disease": "Alzheimer's disease"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Ativan", "generic": "Lorazepam", "disease": "Anxiety"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Valium", "generic": "Diazepam", "disease": "Anxiety"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Xanax", "generic": "Alprazolam", "disease": "Anxiety"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Klonopin", "generic": "Clonazepam", "disease": "Anxiety / seizure disorder"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Lithobid", "generic": "Lithium", "disease": "Bipolar disorder"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Celexa", "generic": "Citalopram", "disease": "Depression"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Cymbalta", "generic": "Duloxetine", "disease": "Depression"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Effexor XR", "generic": "Venlafaxine", "disease": "Depression"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Lexapro", "generic": "Escitalopram", "disease": "Depression"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Pamelor", "generic": "Nortriptyline", "disease": "Depression"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Paxil", "generic": "Paroxetine", "disease": "Depression"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Pristiq", "generic": "Desvenlafaxine", "disease": "Depression"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Prozac", "generic": "Fluoxetine", "disease": "Depression"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Wellbutrin", "generic": "Bupropion", "disease": "Depression"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Zoloft", "generic": "Sertraline", "disease": "Depression"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Ambien", "generic": "Zolpidem", "disease": "Insomnia"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Lunesta", "generic": "Eszopiclone", "disease": "Insomnia"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Restoril", "generic": "Temazepam", "disease": "Insomnia"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Imitrex", "generic": "Sumatriptan", "disease": "Migraine"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Sumatriptan", "generic": "Imitrex", "disease": "Migraine"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Comtan", "generic": "Entacapone", "disease": "Parkinson disease"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Mirapex ER", "generic": "Pramipexole", "disease": "Parkinson disease"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Requip XL", "generic": "Ropinirole", "disease": "Parkinson disease"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Sinemet CR", "generic": "Carbidopa/Levodopa", "disease": "Parkinson disease"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Geodon", "generic": "Ziprasidone", "disease": "Schizophrenia"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Risperdal", "generic": "Risperidone", "disease": "Schizophrenia"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Seroquel", "generic": "Quetiapine", "disease": "Schizophrenia"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Precedex", "generic": "Dexmedetomidine", "disease": "Sedation"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Keppra", "generic": "Levetiracetam", "disease": "Seizures"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Lamictal", "generic": "Lamotrigine", "disease": "Seizures"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Neurontin", "generic": "Gabapentin", "disease": "Seizures"}, {"section": "CNS (Psychiatry / Neurology)", "brand": "Trileptal", "generic": "Oxcarbazepine", "disease": "Seizures"}];
+let round = [];
+let leftCards = [];
+let rightCards = [];
+let selectedLeft = null;
+let score = 0;
+let wrong = 0;
+let mastered = Number(localStorage.getItem("naplex_mastered") || 0);
+
+function shuffle(a) {
+  const arr = [...a];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function speak(text) {
+  if (!("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "en-US";
+  u.rate = 0.85;
+  window.speechSynthesis.speak(u);
+}
+
+function fieldsForMode() {
+  const mode = document.getElementById("mode").value;
+  if (mode === "brand-generic") return ["brand", "generic", "Brand", "Generic"];
+  if (mode === "generic-brand") return ["generic", "brand", "Generic", "Brand"];
+  return ["brand", "disease", "Brand", "Disease"];
+}
+
+function newRound() {
+  const n = Number(document.getElementById("batch").value);
+  const [leftKey, rightKey, leftTitle, rightTitle] = fieldsForMode();
+  document.getElementById("leftTitle").textContent = leftTitle;
+  document.getElementById("rightTitle").textContent = rightTitle;
+  round = shuffle(DATA).slice(0, n).map((x, i) => ({...x, id:i}));
+  leftCards = round.map(x => ({id:x.id, text:x[leftKey], full:x}));
+  rightCards = shuffle(round.map(x => ({id:x.id, text:x[rightKey], full:x})));
+  selectedLeft = null;
+  score = 0;
+  wrong = 0;
+  render();
+}
+
+function render() {
+  document.getElementById("score").textContent = score;
+  document.getElementById("wrong").textContent = wrong;
+  document.getElementById("remaining").textContent = leftCards.filter(x => !x.done).length;
+  document.getElementById("mastered").textContent = mastered;
+  document.getElementById("done").style.display = leftCards.every(x => x.done) ? "block" : "none";
+  renderSide("left", leftCards, true);
+  renderSide("right", rightCards, false);
+  renderReview();
+}
+
+function renderSide(elId, cards, isLeft) {
+  const el = document.getElementById(elId);
+  el.innerHTML = "";
+  cards.forEach(card => {
+    const div = document.createElement("div");
+    div.className = "item" + (card.done ? " correct" : "") + (selectedLeft && isLeft && selectedLeft.id === card.id ? " selected" : "");
+    if (card.text.length > 24) div.classList.add("small");
+    div.onclick = () => selectCard(card, isLeft, div);
+    const span = document.createElement("span");
+    span.className = "text";
+    span.textContent = card.done ? card.text : card.text;
+    const btn = document.createElement("button");
+    btn.className = "speak";
+    btn.textContent = "🔊";
+    btn.onclick = (e) => { e.stopPropagation(); speak(card.text); };
+    div.appendChild(span);
+    div.appendChild(btn);
+    el.appendChild(div);
+  });
+}
+
+function selectCard(card, isLeft, div) {
+  if (card.done) return;
+  if (isLeft) {
+    selectedLeft = card;
+    speak(card.text);
+    render();
+    return;
+  }
+  if (!selectedLeft) {
+    speak(card.text);
+    return;
+  }
+  if (selectedLeft.id === card.id) {
+    selectedLeft.done = true;
+    card.done = true;
+    score++;
+    mastered++;
+    localStorage.setItem("naplex_mastered", mastered);
+    const f = card.full;
+    speak(`${f.brand}. ${f.generic}. ${f.disease}.`);
+    selectedLeft = null;
+  } else {
+    wrong++;
+    div.classList.add("wrong");
+    speak("Try again");
+    setTimeout(() => div.classList.remove("wrong"), 500);
+  }
+  render();
+}
+
+function speakAll() {
+  const [leftKey, rightKey] = fieldsForMode();
+  let text = round.map(x => `${x[leftKey]}. ${x[rightKey]}.`).join(" ");
+  speak(text);
+}
+
+function renderReview() {
+  const el = document.getElementById("review");
+  el.innerHTML = "";
+  round.forEach(x => {
+    const div = document.createElement("div");
+    div.className = "review-card";
+    div.innerHTML = `<b>${x.brand}</b><br>Generic: ${x.generic}<br>Disease: ${x.disease}`;
+    el.appendChild(div);
+  });
+}
+
+newRound();
+</script>
+</body>
+</html>
